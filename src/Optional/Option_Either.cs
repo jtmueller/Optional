@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Optional
 {
@@ -8,10 +8,8 @@ namespace Optional
     /// </summary>
     /// <typeparam name="T">The type of the value to be wrapped.</typeparam>
     /// <typeparam name="TException">A exceptional value describing the lack of an actual value.</typeparam>
-#if !NETSTANDARD10
     [Serializable]
-#endif
-    public struct Option<T, TException> : IEquatable<Option<T, TException>>, IComparable<Option<T, TException>>
+    public readonly struct Option<T, TException> : IEquatable<Option<T, TException>>, IComparable<Option<T, TException>>
     {
         private readonly bool hasValue;
         private readonly T value;
@@ -332,6 +330,7 @@ namespace Optional
         /// <param name="some">The function to evaluate if the value is present.</param>
         /// <param name="none">The function to evaluate if the value is missing.</param>
         /// <returns>The result of the evaluated function.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TResult Match<TResult>(Func<T, TResult> some, Func<TException, TResult> none)
         {
             if (some == null) throw new ArgumentNullException(nameof(some));
@@ -344,6 +343,7 @@ namespace Optional
         /// </summary>
         /// <param name="some">The action to evaluate if the value is present.</param>
         /// <param name="none">The action to evaluate if the value is missing.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Match(Action<T> some, Action<TException> none)
         {
             if (some == null) throw new ArgumentNullException(nameof(some));

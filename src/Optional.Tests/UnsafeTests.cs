@@ -2,127 +2,148 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Optional.Unsafe;
 
-namespace Optional.Tests
+namespace Optional.Tests;
+
+[TestClass]
+public class UnsafeTests
 {
-    [TestClass]
-    public class UnsafeTests
+    [TestMethod]
+    public void Maybe_ToNullable()
     {
-        [TestMethod]
-        public void Maybe_ToNullable()
+        Assert.AreEqual(default(int?), Option.None<int>().ToNullable());
+        Assert.AreEqual(1, Option.Some(1).ToNullable());
+    }
+
+#if NETSTANDARD2_1 || NET6_0_OR_GREATER
+
+    [TestMethod]
+    public void Maybe_ToSpan()
+    {
+        Assert.IsTrue(Option.None<int>().ToSpan().IsEmpty);
+        Assert.AreEqual(1, Option.Some(1).ToSpan()[0]);
+    }
+
+#endif
+
+    [TestMethod]
+    public void Maybe_GetValueOrDefault()
+    {
+        Assert.AreEqual(default(int), Option.None<int>().ValueOrDefault());
+        Assert.AreEqual(1, Option.Some(1).ValueOrDefault());
+
+        Assert.AreEqual(default(int?), Option.None<int?>().ValueOrDefault());
+        Assert.AreEqual(1, Option.Some<int?>(1).ValueOrDefault());
+
+        Assert.AreEqual(default(string), Option.None<string>().ValueOrDefault());
+        Assert.AreEqual("a", Option.Some("a").ValueOrDefault());
+    }
+
+    [TestMethod]
+    public void Maybe_GetUnsafeValue()
+    {
+        var none = "a".None();
+        var some = "a".Some();
+
+        Assert.AreEqual("a", some.ValueOrFailure());
+        Assert.AreEqual("a", some.ValueOrFailure("Error message"));
+
+        try
         {
-            Assert.AreEqual(default(int?), Option.None<int>().ToNullable());
-            Assert.AreEqual(1, Option.Some(1).ToNullable());
+            var result = none.ValueOrFailure();
+            Assert.Fail();
+        }
+        catch (OptionValueMissingException)
+        {
         }
 
-        [TestMethod]
-        public void Maybe_GetValueOrDefault()
+        try
         {
-            Assert.AreEqual(default(int), Option.None<int>().ValueOrDefault());
-            Assert.AreEqual(1, Option.Some(1).ValueOrDefault());
-
-            Assert.AreEqual(default(int?), Option.None<int?>().ValueOrDefault());
-            Assert.AreEqual(1, Option.Some<int?>(1).ValueOrDefault());
-
-            Assert.AreEqual(default(string), Option.None<string>().ValueOrDefault());
-            Assert.AreEqual("a", Option.Some("a").ValueOrDefault());
+            var result = none.ValueOrFailure("Error message");
+            Assert.Fail();
+        }
+        catch (OptionValueMissingException ex)
+        {
+            Assert.AreEqual(ex.Message, "Error message");
         }
 
-        [TestMethod]
-        public void Maybe_GetUnsafeValue()
+        try
         {
-            var none = "a".None();
-            var some = "a".Some();
+            var result = none.ValueOrFailure(() => "Error message");
+            Assert.Fail();
+        }
+        catch (OptionValueMissingException ex)
+        {
+            Assert.AreEqual(ex.Message, "Error message");
+        }
+    }
 
-            Assert.AreEqual("a", some.ValueOrFailure());
-            Assert.AreEqual("a", some.ValueOrFailure("Error message"));
+    [TestMethod]
+    public void Either_ToNullable()
+    {
+        Assert.AreEqual(default(int?), Option.None<int, bool>(false).ToNullable());
+        Assert.AreEqual(1, Option.Some<int, bool>(1).ToNullable());
+    }
 
-            try
-            {
-                var result = none.ValueOrFailure();
-                Assert.Fail();
-            }
-            catch (OptionValueMissingException)
-            {
-            }
+#if NETSTANDARD2_1 || NET6_0_OR_GREATER
 
-            try
-            {
-                var result = none.ValueOrFailure("Error message");
-                Assert.Fail();
-            }
-            catch (OptionValueMissingException ex)
-            {
-                Assert.AreEqual(ex.Message, "Error message");
-            }
+    [TestMethod]
+    public void Either_ToSpan()
+    {
+        Assert.IsTrue(Option.None<int, bool>(false).ToSpan().IsEmpty);
+        Assert.AreEqual(1, Option.Some<int, bool>(1).ToSpan()[0]);
+    }
 
-            try
-            {
-                var result = none.ValueOrFailure(() => "Error message");
-                Assert.Fail();
-            }
-            catch (OptionValueMissingException ex)
-            {
-                Assert.AreEqual(ex.Message, "Error message");
-            }
+#endif
+
+    [TestMethod]
+    public void Either_GetValueOrDefault()
+    {
+        Assert.AreEqual(default(int), Option.None<int, bool>(false).ValueOrDefault());
+        Assert.AreEqual(1, Option.Some<int, bool>(1).ValueOrDefault());
+
+        Assert.AreEqual(default(int?), Option.None<int?, bool>(false).ValueOrDefault());
+        Assert.AreEqual(1, Option.Some<int?, bool>(1).ValueOrDefault());
+
+        Assert.AreEqual(default(string), Option.None<string, bool>(false).ValueOrDefault());
+        Assert.AreEqual("a", Option.Some<string, bool>("a").ValueOrDefault());
+    }
+
+    [TestMethod]
+    public void Either_GetUnsafeValue()
+    {
+        var none = "a".None<string, string>("ex");
+        var some = "a".Some<string, string>();
+
+        Assert.AreEqual("a", some.ValueOrFailure());
+        Assert.AreEqual("a", some.ValueOrFailure("Error message"));
+
+        try
+        {
+            var result = none.ValueOrFailure();
+            Assert.Fail();
+        }
+        catch (OptionValueMissingException)
+        {
         }
 
-        [TestMethod]
-        public void Either_ToNullable()
+        try
         {
-            Assert.AreEqual(default(int?), Option.None<int, bool>(false).ToNullable());
-            Assert.AreEqual(1, Option.Some<int, bool>(1).ToNullable());
+            var result = none.ValueOrFailure("Error message");
+            Assert.Fail();
+        }
+        catch (OptionValueMissingException ex)
+        {
+            Assert.AreEqual(ex.Message, "Error message");
         }
 
-        [TestMethod]
-        public void Either_GetValueOrDefault()
+        try
         {
-            Assert.AreEqual(default(int), Option.None<int, bool>(false).ValueOrDefault());
-            Assert.AreEqual(1, Option.Some<int, bool>(1).ValueOrDefault());
-
-            Assert.AreEqual(default(int?), Option.None<int?, bool>(false).ValueOrDefault());
-            Assert.AreEqual(1, Option.Some<int?, bool>(1).ValueOrDefault());
-
-            Assert.AreEqual(default(string), Option.None<string, bool>(false).ValueOrDefault());
-            Assert.AreEqual("a", Option.Some<string, bool>("a").ValueOrDefault());
+            var result = none.ValueOrFailure(ex => "Error message" + ex);
+            Assert.Fail();
         }
-
-        [TestMethod]
-        public void Either_GetUnsafeValue()
+        catch (OptionValueMissingException ex)
         {
-            var none = "a".None<string, string>("ex");
-            var some = "a".Some<string, string>();
-
-            Assert.AreEqual("a", some.ValueOrFailure());
-            Assert.AreEqual("a", some.ValueOrFailure("Error message"));
-
-            try
-            {
-                var result = none.ValueOrFailure();
-                Assert.Fail();
-            }
-            catch (OptionValueMissingException)
-            {
-            }
-
-            try
-            {
-                var result = none.ValueOrFailure("Error message");
-                Assert.Fail();
-            }
-            catch (OptionValueMissingException ex)
-            {
-                Assert.AreEqual(ex.Message, "Error message");
-            }
-
-            try
-            {
-                var result = none.ValueOrFailure(ex => "Error message" + ex);
-                Assert.Fail();
-            }
-            catch (OptionValueMissingException ex)
-            {
-                Assert.AreEqual(ex.Message, "Error messageex");
-            }
+            Assert.AreEqual(ex.Message, "Error messageex");
         }
     }
 }

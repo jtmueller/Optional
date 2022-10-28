@@ -6,6 +6,8 @@
     <Copyright>Copyright © 2016</Copyright>
     <NoWarn>1591</NoWarn>
     <ReleaseVersion>4.0.0</ReleaseVersion>
+    <Nullable>disable</Nullable>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
   </PropertyGroup>
     
   <ItemGroup>

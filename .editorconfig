@@ -4,6 +4,9 @@ root=true
 indent_style = space
 indent_size = 4
 
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = none
+
 [*.config]
 indent_style = space
 indent_size = 2
