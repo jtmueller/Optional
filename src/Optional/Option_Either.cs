@@ -10,7 +10,10 @@ namespace Optional;
 /// <typeparam name="TException">A exceptional value describing the lack of an actual value.</typeparam>
 [Serializable]
 [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "Sorry VB...")]
-public readonly struct Option<T, TException> : IEquatable<Option<T, TException>>, IComparable<Option<T, TException>>
+public readonly struct Option<T, TException> : IEquatable<Option<T, TException>>, IComparable<Option<T, TException>>, IFormattable
+#if NET6_0_OR_GREATER
+    , ISpanFormattable
+#endif
 {
     private readonly bool hasValue;
     private readonly T value;
@@ -146,8 +149,6 @@ public readonly struct Option<T, TException> : IEquatable<Option<T, TException>>
     /// <returns>A boolean indicating whether or not the left optional is greater than or equal the right optional.</returns>
     public static bool operator >=(Option<T, TException> left, Option<T, TException> right) => left.CompareTo(right) >= 0;
 
-    // TODO: Implement ISpanFormattable for .NET 6?
-
     /// <summary>
     /// Returns a string that represents the current optional.
     /// </summary>
@@ -156,7 +157,7 @@ public readonly struct Option<T, TException> : IEquatable<Option<T, TException>>
     {
         if (hasValue)
         {
-            if (value == null)
+            if (value is null)
             {
                 return "Some(null)";
             }
@@ -164,13 +165,139 @@ public readonly struct Option<T, TException> : IEquatable<Option<T, TException>>
             return $"Some({value})";
         }
 
-        if (exception == null)
+        if (exception is null)
         {
             return "None(null)";
         }
 
         return $"None({exception})";
     }
+
+    /// <inheritdoc/>
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        if (hasValue)
+        {
+            if (value is null)
+            {
+                return "Some(null)";
+            }
+
+            if (!string.IsNullOrEmpty(format))
+            {
+                return string.Format(formatProvider, "Some({0:" + format + "})", value);
+            }
+
+#if NET6_0_OR_GREATER
+            return string.Create(formatProvider, $"Some({value})");
+#else
+            return string.Format(formatProvider, "Some({0})", value);
+#endif
+        }
+
+        if (exception is null)
+        {
+            return "None(null)";
+        }
+
+#if NET6_0_OR_GREATER
+        return string.Create(formatProvider, $"None({exception})");
+#else
+        return string.Format(formatProvider, "None({0})", exception);
+#endif
+    }
+
+#if NET6_0_OR_GREATER
+
+    bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    {
+        if (hasValue)
+        {
+            if (value is ISpanFormattable valFmt)
+            {
+                if ("Some(".AsSpan().TryCopyTo(destination))
+                {
+                    if (valFmt.TryFormat(destination[5..], out charsWritten, format, provider))
+                    {
+                        charsWritten += 5;
+                        if (destination[charsWritten..].Length >= 1)
+                        {
+                            destination[charsWritten] = ')';
+                            charsWritten++;
+                            return true;
+                        }
+                    }
+                }
+
+                destination.Clear();
+                charsWritten = 0;
+                return false;
+            }
+            else if (value is null)
+            {
+                var someNull = "Some(null)".AsSpan();
+                if (someNull.TryCopyTo(destination))
+                {
+                    charsWritten = someNull.Length;
+                    return true;
+                }
+            }
+            else
+            {
+                var strSpan = $"Some({value})".AsSpan();
+                if (strSpan.TryCopyTo(destination))
+                {
+                    charsWritten = strSpan.Length;
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            if (exception is ISpanFormattable exFmt)
+            {
+                if ("None(".AsSpan().TryCopyTo(destination))
+                {
+                    if (exFmt.TryFormat(destination[5..], out charsWritten, format, provider))
+                    {
+                        charsWritten += 5;
+                        if (destination[charsWritten..].Length >= 1)
+                        {
+                            destination[charsWritten] = ')';
+                            charsWritten++;
+                            return true;
+                        }
+                    }
+                }
+
+                destination.Clear();
+                charsWritten = 0;
+                return false;
+            }
+            else if (exception is null)
+            {
+                if ("None(null)".AsSpan().TryCopyTo(destination))
+                {
+                    charsWritten = 10;
+                    return true;
+                }
+            }
+            else
+            {
+                var strSpan = $"None({exception})".AsSpan();
+                if (strSpan.TryCopyTo(destination))
+                {
+                    charsWritten = strSpan.Length;
+                    return true;
+                }
+            }
+        }
+
+        charsWritten = 0;
+        return false;
+    }
+
+#endif
 
     /// <summary>
     /// Converts the current optional into an enumerable with one or zero elements.

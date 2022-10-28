@@ -9,7 +9,10 @@ namespace Optional;
 /// <typeparam name="T">The type of the value to be wrapped.</typeparam>
 [Serializable]
 [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "Sorry VB...")]
-public readonly struct Option<T> : IEquatable<Option<T>>, IComparable<Option<T>>
+public readonly struct Option<T> : IEquatable<Option<T>>, IComparable<Option<T>>, IFormattable
+#if NET6_0_OR_GREATER
+    , ISpanFormattable
+#endif
 {
     /// <summary>
     /// An empty <see cref="Option{T}"/> instance.
@@ -138,8 +141,6 @@ public readonly struct Option<T> : IEquatable<Option<T>>, IComparable<Option<T>>
     /// <returns>A boolean indicating whether or not the left optional is greater than or equal the right optional.</returns>
     public static bool operator >=(Option<T> left, Option<T> right) => left.CompareTo(right) >= 0;
 
-    // TODO: Implement ISpanFormattable for .NET 6?
-
     /// <summary>
     /// Returns a string that represents the current optional.
     /// </summary>
@@ -158,6 +159,91 @@ public readonly struct Option<T> : IEquatable<Option<T>>, IComparable<Option<T>>
 
         return "None";
     }
+
+    /// <inheritdoc/>
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        if (hasValue)
+        {
+            if (value == null)
+            {
+                return "Some(null)";
+            }
+
+            if (!string.IsNullOrEmpty(format))
+            {
+                return string.Format(formatProvider, "Some({0:" + format + "})", value);
+            }
+
+#if NET6_0_OR_GREATER
+            return string.Create(formatProvider, $"Some({value})");
+#else
+            return string.Format(formatProvider, "Some({0})", value);
+#endif
+        }
+
+        return "None";
+    }
+
+#if NET6_0_OR_GREATER
+
+    bool ISpanFormattable.TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+    {
+        if (hasValue)
+        {
+            if (value is ISpanFormattable valFmt)
+            {
+                if ("Some(".AsSpan().TryCopyTo(destination))
+                {
+                    if (valFmt.TryFormat(destination[5..], out charsWritten, format, provider))
+                    {
+                        charsWritten += 5;
+                        if (destination[charsWritten..].Length >= 1)
+                        {
+                            destination[charsWritten] = ')';
+                            charsWritten++;
+                            return true;
+                        }
+                    }
+                }
+
+                destination.Clear();
+                charsWritten = 0;
+                return false;
+            }
+            else if (value is null)
+            {
+                var someNull = "Some(null)".AsSpan();
+                if (someNull.TryCopyTo(destination))
+                {
+                    charsWritten = someNull.Length;
+                    return true;
+                }
+            }
+            else
+            {
+                var strSpan = $"Some({value})".AsSpan();
+                if (strSpan.TryCopyTo(destination))
+                {
+                    charsWritten = strSpan.Length;
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            if ("None".AsSpan().TryCopyTo(destination))
+            {
+                charsWritten = 4;
+                return true;
+            }
+        }
+
+        charsWritten = 0;
+        return false;
+    }
+
+#endif
 
     /// <summary>
     /// Converts the current optional into an enumerable with one or zero elements.
