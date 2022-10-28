@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Optional;
 
@@ -8,6 +8,7 @@ namespace Optional;
 /// </summary>
 /// <typeparam name="T">The type of the value to be wrapped.</typeparam>
 [Serializable]
+[SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "Sorry VB...")]
 public readonly struct Option<T> : IEquatable<Option<T>>, IComparable<Option<T>>
 {
     /// <summary>
@@ -136,6 +137,8 @@ public readonly struct Option<T> : IEquatable<Option<T>>, IComparable<Option<T>>
     /// <param name="right">The second optional to compare.</param>
     /// <returns>A boolean indicating whether or not the left optional is greater than or equal the right optional.</returns>
     public static bool operator >=(Option<T> left, Option<T> right) => left.CompareTo(right) >= 0;
+
+    // TODO: Implement ISpanFormattable for .NET 6?
 
     /// <summary>
     /// Returns a string that represents the current optional.
