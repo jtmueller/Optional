@@ -939,32 +939,5 @@ namespace Optional.Tests
             Assert.AreEqual(some2.ValueOr(-1), 1);
             Assert.AreEqual(some3.ValueOr("-1"), "1");
         }
-
-#if !NETSTANDARD10
-        [TestMethod]
-        public void Either_Serialization()
-        {
-            var some = Option.Some<string, string>("1");
-            var none = Option.None<string, string>("-1");
-
-            var formatter = new BinaryFormatter();
-
-            using (var stream = new MemoryStream())
-            {
-                formatter.Serialize(stream, some);
-                stream.Position = 0;
-                var someDeserialized = (Option<string, string>)formatter.Deserialize(stream);
-                Assert.AreEqual(some, someDeserialized);
-            }
-
-            using (var stream = new MemoryStream())
-            {
-                formatter.Serialize(stream, none);
-                stream.Position = 0;
-                var noneDeserialized = (Option<string, string>)formatter.Deserialize(stream);
-                Assert.AreEqual(none, noneDeserialized);
-            }
-        }
-#endif
     }
 }
